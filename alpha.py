@@ -1,3 +1,6 @@
+# alpha.py
+
+# -------------------- Token --------------------
 class Token:
     def __init__(self, type, value=None):
         self.type = type
@@ -5,6 +8,7 @@ class Token:
     def __repr__(self):
         return f"{self.type}({self.value})" if self.value is not None else f"{self.type}"
 
+# -------------------- Lexer --------------------
 class Lexer:
     def __init__(self, text):
         self.text = text
@@ -81,6 +85,7 @@ class Lexer:
             raise Exception(f"Lexer error: {self.current_char}")
         return Token('EOF')
 
+# -------------------- AST Nodes --------------------
 class Number:
     def __init__(self, value): self.value = value
 class Variable:
@@ -100,6 +105,7 @@ class WhileStatement:
 class Program:
     def __init__(self, statements): self.statements = statements
 
+# -------------------- Parser --------------------
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -170,6 +176,7 @@ class Parser:
             if s: stmts.append(s)
         return Program(stmts)
 
+# -------------------- Interpreter --------------------
 def eval_expr(node, memory):
     if isinstance(node, Number): return node.value
     elif isinstance(node, Variable):
@@ -183,6 +190,7 @@ def eval_condition(cond, memory):
     l = eval_expr(cond.left, memory); r = eval_expr(cond.right, memory)
     return (l==r if cond.op=='EQ' else l!=r)
 
+# -------------------- Run program (import-safe) --------------------
 def run_program_interactive(code, input_values={}):
     lexer=Lexer(code); tokens=[]
     while True:
