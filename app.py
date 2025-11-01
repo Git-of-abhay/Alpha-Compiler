@@ -38,18 +38,12 @@ def run_code():
     sessions[session_id] = input_values
     result_container = {}
 
-  def target():
-    try:
-        res = alpha.run_program_interactive(code, input_values)
-        result_container['res'] = res
-    except Exception as e:
-        result_container['res'] = {
-            'done': True,
-            'output': [],
-            'memory': input_values,  
-            'error': str(e)
-        }
-
+    def target():
+        try:
+            res = alpha.run_program_interactive(code, input_values)
+            result_container['res'] = res
+        except Exception as e:
+            result_container['res'] = {'done': True, 'output': [], 'error': str(e)}
 
     thread = threading.Thread(target=target)
     thread.start()
@@ -62,4 +56,3 @@ def run_code():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
