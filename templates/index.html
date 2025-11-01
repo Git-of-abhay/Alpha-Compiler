@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Alpha Compiler Web</title>
+<style>
+body { font-family: monospace; background: #1e1e1e; color: #f0f0f0; padding:20px; }
+textarea { width: 100%; height: 300px; background: #2e2e2e; color: #f0f0f0; border: none; padding: 10px; font-family: monospace; }
+button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+pre { background: #2e2e2e; padding: 10px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h2>Alpha Compiler Web</h2>
+<textarea id="code" placeholder="Write your .my code here..."></textarea><br>
+<button onclick="runCode()">Run</button>
+<h3>Output:</h3>
+<pre id="output"></pre>
+
+<script>
+let session_id = Math.random().toString(36).substring(2, 12);
+
+function runCode(input_var=null, input_val=null) {
+    let formData = new FormData();
+    formData.append('code', document.getElementById('code').value);
+    formData.append('session', session_id);
+    if(input_var && input_val !== null){
+        formData.append('input_var', input_var);
+        formData.append('input', input_val);
+    }
+
+    fetch('/run', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.output) {
+            document.getElementById('output').textContent = data.output.join('\n');
+        }
+        if(data.need_input){
+            let val = prompt(`Enter value for ${data.need_input}:`);
+            runCode(data.need_input, val);
+        }
+    });
+}
+</script>
+</body>
+</html>
