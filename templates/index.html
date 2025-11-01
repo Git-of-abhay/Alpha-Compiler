@@ -1,122 +1,48 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>AlphaLang</title>
-    <style>
-        body {
-            background: #0d0d0d;
-            color: #eaeaea;
-            font-family: monospace;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            width: 90%;
-            margin: auto;
-            padding-top: 20px;
-        }
-        textarea {
-            width: 100%;
-            height: 300px;
-            background: #1a1a1a;
-            color: #eaeaea;
-            border: 1px solid #333;
-            padding: 10px;
-            resize: vertical;
-            font-size: 14px;
-            outline: none;
-        }
-        button {
-            background: #222;
-            border: 1px solid #555;
-            padding: 10px 15px;
-            color: #eaeaea;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        pre {
-            width: 100%;
-            height: 200px;
-            background: #111;
-            color: #eaeaea;
-            border: 1px solid #333;
-            padding: 10px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        h2 {
-            color: #e0e0e0;
-            margin-bottom: 5px;
-        }
-        input {
-            background: #1a1a1a;
-            color: #eaeaea;
-            border: 1px solid #333;
-            padding: 8px;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Alpha Compiler Web</title>
+<style>
+body { font-family: monospace; background: #1e1e1e; color: #f0f0f0; padding:20px; }
+textarea { width: 100%; height: 300px; background: #2e2e2e; color: #f0f0f0; border: none; padding: 10px; font-family: monospace; }
+button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+pre { background: #2e2e2e; padding: 10px; white-space: pre-wrap; }
+</style>
 </head>
-
 <body>
-<div class="container">
-    <h2>AlphaLang Editor</h2>
-    <textarea id="code" placeholder="Write AlphaLang code here..."></textarea><br>
-    <button onclick="runProgram()">Run</button>
-
-    <h2>Output</h2>
-    <pre id="output"></pre>
-
-    <div id="inputBox" style="display:none;">
-        <input type="text" id="userInput" placeholder="input...">
-        <button onclick="sendInput()">Submit</button>
-    </div>
-</div>
+<h2>Alpha Compiler Web</h2>
+<textarea id="code" placeholder="Write your .my code here..."></textarea><br>
+<button onclick="runCode()">Run</button>
+<h3>Output:</h3>
+<pre id="output"></pre>
 
 <script>
-let session = null;
+let session_id = Math.random().toString(36).substring(2, 12);
 
-function appendOutput(text) {
-    document.getElementById("output").innerText += text + "\n";
-}
+function runCode(input_var=null, input_val=null) {
+    let formData = new FormData();
+    formData.append('code', document.getElementById('code').value);
+    formData.append('session', session_id);
+    if(input_var && input_val !== null){
+        formData.append('input_var', input_var);
+        formData.append('input', input_val);
+    }
 
-async function runProgram() {
-    document.getElementById("output").innerText = "";
-    session = null;
-    sendRequest();
-}
-
-async function sendInput() {
-    const val = document.getElementById("userInput").value;
-    document.getElementById("userInput").value = "";
-    sendRequest(val);
-}
-
-async function sendRequest(inputVal=null) {
-    let payload = { code: document.getElementById("code").value, input: inputVal, session: session };
-
-    let r = await fetch('/run', {
+    fetch('/run', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.output) {
+            document.getElementById('output').textContent = data.output.join('\n');
+        }
+        if(data.need_input){
+            let val = prompt(`Enter value for ${data.need_input}:`);
+            runCode(data.need_input, val);
+        }
     });
-
-    let data = await r.json();
-    session = data.session;
-
-    if(data.output) {
-        data.output.forEach(o => appendOutput(o));
-    }
-
-    if(data.error) {
-        appendOutput("ERROR: " + data.error);
-    }
-
-    if(data.need_input) {
-        document.getElementById("inputBox").style.display = "block";
-    } else {
-        document.getElementById("inputBox").style.display = "none";
-    }
 }
 </script>
 </body>
