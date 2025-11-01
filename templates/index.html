@@ -1,142 +1,123 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>AlphaLang Compiler</title>
-
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
-
-<style>
-body {
-  font-family: monospace;
-  background:#111;
-  color:white;
-  padding:20px;
-}
-#output {
-  white-space:pre-wrap;
-  background:#000;
-  padding:10px;
-  border-radius:5px;
-  margin-top:10px;
-}
-#memory {
-  white-space:pre-wrap;
-  background:#222;
-  padding:10px;
-  border-radius:5px;
-  margin-top:10px;
-}
-.btn {
-  padding:8px;
-  border:none;
-  margin:5px;
-  border-radius:4px;
-  cursor:pointer;
-  color:white;
-}
-.run { background:#28a745; }
-.reset { background:#d63333; }
-.samples { background:#444; }
-</style>
+    <title>AlphaLang</title>
+    <style>
+        body {
+            background: #0d0d0d;
+            color: #eaeaea;
+            font-family: monospace;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: auto;
+            padding-top: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            background: #1a1a1a;
+            color: #eaeaea;
+            border: 1px solid #333;
+            padding: 10px;
+            resize: vertical;
+            font-size: 14px;
+            outline: none;
+        }
+        button {
+            background: #222;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            color: #eaeaea;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        pre {
+            width: 100%;
+            height: 200px;
+            background: #111;
+            color: #eaeaea;
+            border: 1px solid #333;
+            padding: 10px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        h2 {
+            color: #e0e0e0;
+            margin-bottom: 5px;
+        }
+        input {
+            background: #1a1a1a;
+            color: #eaeaea;
+            border: 1px solid #333;
+            padding: 8px;
+        }
+    </style>
 </head>
 
 <body>
-<h2>AlphaLang Web Compiler</h2>
+<div class="container">
+    <h2>AlphaLang Editor</h2>
+    <textarea id="code" placeholder="Write AlphaLang code here..."></textarea><br>
+    <button onclick="runProgram()">Run</button>
 
-<!-- Language Help Box -->
-<div style="background:#222;padding:10px;border-radius:8px;">
-<b>Language Rules</b><br>
-• Only arithmetic (+ - * /)<br>
-• Output using <code>&lt;variable</code><br>
-• Input using <code>&gt;variable</code><br>
-• Use <code>;</code> to end the entire program<br>
-• Comparisons: <code>==</code> and <code>!=</code><br>
-• Loops end with <code>end</code><br>
+    <h2>Output</h2>
+    <pre id="output"></pre>
+
+    <div id="inputBox" style="display:none;">
+        <input type="text" id="userInput" placeholder="input...">
+        <button onclick="sendInput()">Submit</button>
+    </div>
 </div>
 
-<br>
-
-<!-- Samples -->
-<select id="samples" class="samples">
-  <option value="">Sample Programs…</option>
-  <option value="x = 1\n<x\n;">Print X</option>
-  <option value=">x\ny = x + 3\n<y\n;">Input + Print</option>
-  <option value="x = 0\nwhile x != 3\n    x = x + 1\nend\n<x\n;">Loop Example</option>
-</select>
-
-<div id="editor" style="border:1px solid #444;height:200px;"></div>
-
-<button class="btn run" onclick="runCode()">Run ▶</button>
-<button class="btn reset" onclick="resetSession()">Reset Session</button>
-
-<div id="output"></div>
-<div id="memory"></div>
-
 <script>
-let editor = CodeMirror(document.getElementById('editor'), {
-  value: ">x\nx = x + 1\n<x\n;",
-  mode: "python",
-  theme: "default",
-  lineNumbers: true
-});
+let session = null;
 
-let session = Math.random().toString(36).substring(2);
-
-document.getElementById("samples").onchange = function() {
-  editor.setValue(this.value);
-};
-
-function runCode() {
-  let code = editor.getValue();
-  document.getElementById("output").textContent = "Running...";
-  document.getElementById("memory").textContent = "";
-
-  fetch("/run", {
-    method: "POST",
-    headers: { "Content-Type":"application/x-www-form-urlencoded" },
-    body: `code=${encodeURIComponent(code)}&session=${session}`
-  })
-  .then(r=>r.json())
-  .then(res=>{
-      if(res.error) document.getElementById("output").textContent = "Error: "+res.error;
-      if(res.output) document.getElementById("output").textContent = res.output.join("\n");
-      if(res.need_input){
-          let val = prompt(`Enter value for ${res.need_input}`);
-          fetch("/run", {
-            method:"POST",
-            headers:{ "Content-Type":"application/x-www-form-urlencoded" },
-            body:`code=${encodeURIComponent(code)}&session=${session}&input_var=${res.need_input}&input=${val}`
-          })
-          .then(r=>r.json()).then(runCode); 
-      }
-      checkLoop(res);
-      showMemory(res);
-  });
+function appendOutput(text) {
+    document.getElementById("output").innerText += text + "\n";
 }
 
-function showMemory(res){
-  if(res.memory){
-    document.getElementById("memory").textContent =
-      "Variable Memory\n----------------\n" +
-      JSON.stringify(res.memory,null,2);
-  }
+async function runProgram() {
+    document.getElementById("output").innerText = "";
+    session = null;
+    sendRequest();
 }
 
-function resetSession(){
-  session = Math.random().toString(36).substring(2);
-  document.getElementById("output").textContent = "New session started.";
+async function sendInput() {
+    const val = document.getElementById("userInput").value;
+    document.getElementById("userInput").value = "";
+    sendRequest(val);
 }
 
-function checkLoop(res){
-  if(res.error && res.error.includes("timed out"))
-    document.getElementById("output").textContent +=
-      "\n⚠️ Possible infinite loop detected!";
+async function sendRequest(inputVal=null) {
+    let payload = { code: document.getElementById("code").value, input: inputVal, session: session };
+
+    let r = await fetch('/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    let data = await r.json();
+    session = data.session;
+
+    if(data.output) {
+        data.output.forEach(o => appendOutput(o));
+    }
+
+    if(data.error) {
+        appendOutput("ERROR: " + data.error);
+    }
+
+    if(data.need_input) {
+        document.getElementById("inputBox").style.display = "block";
+    } else {
+        document.getElementById("inputBox").style.display = "none";
+    }
 }
 </script>
-
 </body>
 </html>
