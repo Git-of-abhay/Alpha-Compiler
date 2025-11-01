@@ -1,15 +1,11 @@
 from flask import Flask, render_template, request, jsonify
-import alpha  # your interpreter
-import threading
-import time
+import alpha
+import threading, time, os
 
 app = Flask(__name__)
-sessions = {}  
-session_timestamps = {}  
-
-
+sessions = {}
+session_timestamps = {}
 MAX_EXECUTION_TIME = 5
-
 
 def cleanup_sessions():
     while True:
@@ -33,18 +29,15 @@ def run_code():
     input_value = request.form.get('input', None)
     input_var = request.form.get('input_var', None)
 
-  
     session_timestamps[session_id] = time.time()
-
     input_values = sessions.get(session_id, {})
 
- 
     if input_var and input_value is not None:
         input_values[input_var] = input_value
 
     sessions[session_id] = input_values
-
     result_container = {}
+
     def target():
         try:
             res = alpha.run_program_interactive(code, input_values)
@@ -61,6 +54,5 @@ def run_code():
     return jsonify(result_container['res'])
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
