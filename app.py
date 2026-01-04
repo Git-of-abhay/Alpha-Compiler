@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import alpha
 import threading, time, os
-
+# if thats the case
 app = Flask(__name__)
 sessions = {}
 session_timestamps = {}
@@ -56,3 +56,4 @@ def run_code():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
