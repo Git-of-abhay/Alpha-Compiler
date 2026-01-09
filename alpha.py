@@ -181,6 +181,8 @@ def eval_expr(node, memory):
         raise Exception(f"Runtime error: '{node.name}' not defined")
     elif isinstance(node, BinOp):
         l = eval_expr(node.left, memory); r = eval_expr(node.right, memory)
+        if node.op == 'DIV' and r == 0:
+            raise RuntimeError('division by zero')
         return l+r if node.op=='PLUS' else l-r if node.op=='MINUS' else l*r if node.op=='MUL' else l//r
 
 def eval_condition(cond, memory):
